@@ -65,7 +65,21 @@ export async function sendMessage(
   if (!messageText.trim() && (!attachments || attachments.length === 0)) return
   
   state.error.value = null
-  if (state.isWaitingForResponse.value) return
+  if (state.isWaitingForResponse.value) {
+    const hasPendingTool = computed.hasPendingToolConfirmation.value
+    if (state.isStreaming.value || hasPendingTool) return
+
+    const lastMessage = state.allMessages.value[state.allMessages.value.length - 1]
+    if (isLocalOnlyAssistant(lastMessage) || isEmptyAssistantPlaceholder(lastMessage)) {
+      state.allMessages.value = state.allMessages.value.slice(0, -1)
+      syncTotalMessagesFromWindow(state)
+      trimWindowFromTop(state)
+    }
+
+    state.streamingMessageId.value = null
+    state.isStreaming.value = false
+    state.isWaitingForResponse.value = false
+  }
   
   state.isLoading.value = true
   state.isStreaming.value = true
